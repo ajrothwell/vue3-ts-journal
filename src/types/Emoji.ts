@@ -1,3 +1,5 @@
+// create a union type to limit the possibilities
+
 type Emoji =
   | "confused"
   | "cool"
