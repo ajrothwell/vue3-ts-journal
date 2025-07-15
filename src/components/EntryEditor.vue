@@ -4,11 +4,14 @@ import ArrowCircleRight from "@/assets/icons/arrow-circle-right.svg";
 
 import type Emoji from "@/types/Emoji";
 
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, inject } from "vue";
 // import capital R Ref from vue
 import type { Ref } from "vue";
 
 import type Entry from "@/types/Entry";
+
+import { userInjectionKey } from "@/injectionKeys";
+
 
 // data
 const body = ref("");
@@ -23,6 +26,19 @@ const emoji = ref<Emoji | null>(null);
 const charCount = computed(() => body.value.length);
 // const charCount = computed<number>(() => text.value.length);
 const maxChars = 280;
+
+const user = inject(userInjectionKey);
+
+// template refs
+// to correctly "type" the textarea variable, we use an explicit
+// generic type argument - HTMLTextAreaElement
+const textarea = ref<HTMLTextAreaElement | null>(null);
+// the null is necessary as the TextAreaElement won't exist until
+// the component is mounted to the DOM
+onMounted(() => {
+  textarea.value?.focus();
+});
+
 
 // events
 // defineEmits is a macro (or a runtime declaration)
@@ -48,12 +64,15 @@ const maxChars = 280;
 //   // (e: "@someOtherEvent", payload: string): void;
 // }>();
 
-defineEmits<{
+// defineEmits<{
+//   (e: "@create", entry: Entry): void;
+// }>();
+const emit = defineEmits<{
   (e: "@create", entry: Entry): void;
 }>();
 
 
-// methods
+// methods - this method is an event handler
 const handleTextInput = (e: Event) => {
   // cast DOM event target to a specific element type
   const textarea = e.target as HTMLTextAreaElement;
@@ -65,22 +84,37 @@ const handleTextInput = (e: Event) => {
   }
 }
 
+const handleSubmit = () => {
+  emit('@create', {
+    body: body.value,
+    emoji: emoji.value,
+    createdAt: new Date(),
+    userId: 1,
+    id: Math.random(),
+  });
+
+  body.value = "";
+  emoji.value = null;
+};
+
 </script>
 <template>
   <form
     class="entry-form"
-    @submit.prevent="$emit('@create', {
-      body,
-      emoji,
-      createdAt: new Date(),
-      userId: 1,
-      id: Math.random(),
-    })"
+    @submit.prevent="handleSubmit"
   >
+  <!-- @submit.prevent="$emit('@create', {
+    body,
+    emoji,
+    createdAt: new Date(),
+    userId: 1,
+    id: Math.random(),
+  })" -->
     <textarea
       :value="body"
+      ref="textarea"
       @keyup="handleTextInput"
-      placeholder="New Journal Entry for danielkelly_io"
+      :placeholder="`New Journal Entry for ${user.username || 'anonymous'}`"
     ></textarea>
     <EmojiField v-model="emoji" />
     <div class="entry-form-footer">
